@@ -1,0 +1,129 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r}
+install.packages('BiocManager')
+install.packages('RColorBrewer')
+install.packages('pheatmap')
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("org.Mm.eg.db")
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("DESeq2")
+install.packages('genefilter')
+```
+
+```{r}
+exp_counts <- read.table(file="FEATURECOUNTS_HRT_LYMP.txt", sep = "\t", header = T)
+sample_data <- read.table(file="sample_data2.txt", sep = "\t", header = T, row.names=1)
+data.frame(exp_counts)
+sample_data
+
+
+d2 <- duplicated(exp_counts$X)
+exp_counts <- exp_counts[!d2,]
+
+
+exp_counts2=exp_counts[,-1]
+rownames(exp_counts2)=exp_counts[,1]
+exp_counts=exp_counts2
+
+
+
+head(exp_counts)
+sample_data
+```
+
+```{r}
+data_deseq <- DESeqDataSetFromMatrix(countData = exp_counts, colData = sample_data, design = ~ 1)
+```
+
+```{r}
+ data_deseq <- data_deseq[ rowSums(counts(data_deseq)) > 1, ]
+```
+
+```{r}
+rld <- rlog(data_deseq, blind=FALSE)
+```
+
+```{r}
+sampleDists <- dist(t(assay(rld)))
+```
+
+```{r}
+sampleDists
+```
+
+```{r}
+sampleDistMatrix <- as.matrix(sampleDists)
+sampleDistMatrix
+```
+
+```{r}
+rownames(sampleDistMatrix) <- paste( rld$cell_type, rld$dev_stage, rld$replicate, sep="-" )
+rownames(sampleDistMatrix)
+```
+
+```{r}
+colnames(sampleDistMatrix) <- paste( rld$cell_type, rld$dev_stage, rld$replicate, sep="-" )
+colnames(sampleDistMatrix)
+```
+
+```{r}
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix, clustering_distance_rows=sampleDists, clustering_distance_cols=sampleDists, col=colors)
+```
+
+
+```{r}
+geneVars <- rowVars(assay(rld))
+geneVars
+```
+
+
+```{r}
+geneVarsOrdered <- order(geneVars, decreasing = TRUE)
+geneVarsOrdered
+topVarGenes <- head(geneVarsOrdered, 25)
+topVarGenes
+rld
+mat <- assay(rld)[ topVarGenes, ]
+mat <- mat - rowMeans(mat)
+mat
+df <- as.data.frame(colData(rld)[,c("cell_type","dev_stage")])
+clear_col_names <- paste( rld$cell_type, rld$dev_stage, rld$replicate, sep=".")
+clear_col_names
+```
+
+```{r}
+topGenesHeatmap <- pheatmap(mat, annotation_col=df, labels_col = clear_col_names)
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
